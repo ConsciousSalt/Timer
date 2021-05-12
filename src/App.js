@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 
-const PRESET_ARRAY = [{name:"30 Secs",value:30}, {name:"Work 5",value:300}, {name:"Quick 15",value:900}, {name:"30 min",value:1800}, {name:"One hour", value:3600}];
+const PRESET_ARRAY = [
+  { name: "30 Secs", value: 30 },
+  { name: "Work 5", value: 300 },
+  { name: "Quick 15", value: 900 },
+  { name: "30 min", value: 1800 },
+  { name: "One hour", value: 3600 },
+];
 let countdown;
 let counter;
 let stopped = false;
@@ -10,14 +16,13 @@ function App() {
   const [timerStopped, setTimerStopped] = useState(true);
   const [insertedSeconds, setInsertedSeconds] = useState(0);
   const [remainSeconds, setRemainSeconds] = useState(0);
-  const [controlTitle, setControlTitle] = useState('play');
   const [finishDate, setFinishDate] = useState("");
 
   function updateTimer() {
     setRemainSeconds(--counter);
-    setFinishDate(new Date(Date.now()+counter*1000).toLocaleString());
-    if (counter<=0){
-      setControlTitle('Play');
+    setFinishDate(new Date(Date.now() + counter * 1000).toLocaleString());
+    if (counter <= 0) {
+      setTimerStopped(true);
     }
   }
 
@@ -51,23 +56,24 @@ function App() {
 
   function timerControlsHandler(event) {
     event.preventDefault();
-    if (countdown !== undefined){
+    if (countdown !== undefined) {
       clearInterval(countdown);
       countdown = undefined;
-      stopped   = true;
-      //setControlTitle('Play');
-      setTimerStopped(false);
+      stopped = true;
+      setTimerStopped(true);
       setFinishDate("");
-    }else{
+    } else {
       if (stopped) {
         stopped = false;
         startTimer();
-      }else{
+      } else {
         counter = insertedSeconds;
         setRemainSeconds(insertedSeconds);
       }
-      //setControlTitle('Stop');
-      setTimerStopped(true); 
+      setTimerStopped(false);
+    }
+    if (insertedSeconds !== 0){
+      setInsertedSeconds(0);
     }
   }
 
@@ -81,12 +87,19 @@ function App() {
         <SettingsIconContainer />
       </header>
       <div className="content">
-        <PresetNavigation navigationVisible={navigationVisible} insertedSeconds={insertedSeconds} setInsertedSeconds={setInsertedSeconds}/>
+        <PresetNavigation
+          navigationVisible={navigationVisible}
+          insertedSeconds={insertedSeconds}
+          setInsertedSeconds={setInsertedSeconds}
+        />
         <main>
           <div className="controls-container">
             <div className="clock-face-container-outer">
               <div className="clock-face-container-inner">
-                <ClockFaceDisplay remainSeconds={remainSeconds} finishDate={finishDate}/>
+                <ClockFaceDisplay
+                  remainSeconds={remainSeconds}
+                  finishDate={finishDate}
+                />
                 <ClockFaceControls
                   timerControlsHandler={timerControlsHandler}
                   timerStopped={timerStopped}
@@ -128,49 +141,83 @@ function PresetNavigation(props) {
 
   return (
     <nav>
+      <input
+        type="number"
+        value={props.insertedSeconds}
+        onChange={(e) => props.setInsertedSeconds(parseInt(e.target.value))}
+      />
+      <br />
       {PRESET_ARRAY.map((preset, index) => {
         return (
           <div key={index} className="preset-container">
-            <button className="preset-container-button" >{preset.name}</button>
+            <button className="preset-container-button">{preset.name}</button>
             <button className="preset-container-button-delete">
               <i className="fas fa-trash inactive"></i>
             </button>
           </div>
         );
       })}
-      <input
-          type="number"
-          value={props.insertedSeconds}
-          onChange={(e) => props.setInsertedSeconds(parseInt(e.target.value))}
-        />
     </nav>
   );
 }
 
 function ClockFaceDisplay(props) {
-    return (
-      <div className="clock-face-container-display" style={{flexDirection:"column"}}>
-        {/* <p>
-          <span>{(props.hours < 10 ? "0" : "") + props.hours}</span>:
-          <span>{(props.minutes < 10 ? "0" : "") + props.minutes}</span>:
-          <span>{(props.seconds < 10 ? "0" : "") + props.seconds}</span>
-        </p> */}
-         <h1 style={{fontSize:"20px"}}>{props.finishDate}</h1>
-        <p style={{marginTop:"35px"}}>{props.remainSeconds}</p>
-       
-      </div>
-    );
+  let hours = Math.floor(props.remainSeconds / 3600);
+  let hoursReminder = props.remainSeconds % 3600;
+  let minutes = Math.floor(hoursReminder / 60);
+  let seconds = hoursReminder % 60;
+
+  return (
+    <div
+      className="clock-face-container-display"
+      style={{ flexDirection: "column" }}
+    >
+      <h1
+        style={{
+          fontSize: "20px",
+          width: "170px",
+          height: "25px",
+          marginTop: "25px",
+        }}
+      >
+        {props.finishDate}
+      </h1>
+      <p style={{ marginTop: "35px" }}>
+        <span
+          style={{ maxWidth: "130px", width: "130px", display: "inline-block" }}
+        >
+          {(hours < 10 ? "0" : "") + hours}
+        </span>
+        :
+        <span
+          style={{ maxWidth: "130px", width: "130px", display: "inline-block" }}
+        >
+          {(minutes < 10 ? "0" : "") + minutes}
+        </span>
+        :
+        <span
+          style={{ maxWidth: "92px", width: "92px", display: "inline-block" }}
+        >
+          {(seconds < 10 ? "0" : "") + seconds}
+        </span>
+      </p>
+    </div>
+  );
 }
 
 function ClockFaceControls(props) {
-  let classes=['clock-face-container-controls-container'];
-  if (!props.timerStopped){
-    classes.push('stopped');
+  let classes = ["clock-face-container-controls-container"];
+  if (!props.timerStopped) {
+    classes.push("stopped");
   }
 
   return (
-    <div className={classes.join(' ')} onClick={props.timerControlsHandler}>
-      {props.timerStopped?<i className="fas fa-play"></i>:<i class="fas fa-pause"></i>}
+    <div className={classes.join(" ")} onClick={props.timerControlsHandler}>
+      {props.timerStopped ? (
+        <i className="fas fa-play"></i>
+      ) : (
+        <i class="fas fa-pause"></i>
+      )}
     </div>
   );
 }
