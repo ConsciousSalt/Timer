@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from "react";
 
-const PRESET_ARRAY = [
-  { name: "30 Secs", value: 30 },
-  { name: "Work 5", value: 300 },
-  { name: "Quick 15", value: 900 },
-  { name: "30 min", value: 1800 },
-  { name: "One hour", value: 3600 },
-  { name: "Two hours", value: 7200 },
-];
+const PRESET_ARRAY = [{name:"30 Secs",value:30}, {name:"Work 5",value:300}, {name:"Quick 15",value:900}, {name:"30 min",value:1800}, {name:"One hour", value:3600}];
 let countdown;
 let counter;
 let stopped = false;
 
 function App() {
+  const [navigationVisible, setNavigationVisible] = useState(false);
+  const [timerStopped, setTimerStopped] = useState(true);
   const [insertedSeconds, setInsertedSeconds] = useState(0);
   const [remainSeconds, setRemainSeconds] = useState(0);
   const [controlTitle, setControlTitle] = useState('play');
-  const[finishDate, setFinishDate] = useState("");
+  const [finishDate, setFinishDate] = useState("");
 
   function updateTimer() {
     setRemainSeconds(--counter);
@@ -50,52 +45,52 @@ function App() {
     };
   }, [remainSeconds]);
 
+  function navigationContainerClickHandler() {
+    setNavigationVisible(!navigationVisible);
+  }
+
+  function timerControlsHandler(event) {
+    event.preventDefault();
+    if (countdown !== undefined){
+      clearInterval(countdown);
+      countdown = undefined;
+      stopped   = true;
+      //setControlTitle('Play');
+      setTimerStopped(false);
+      setFinishDate("");
+    }else{
+      if (stopped) {
+        stopped = false;
+        startTimer();
+      }else{
+        counter = insertedSeconds;
+        setRemainSeconds(insertedSeconds);
+      }
+      //setControlTitle('Stop');
+      setTimerStopped(true); 
+    }
+  }
+
   return (
     <div className="App">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (countdown !== undefined){
-            clearInterval(countdown);
-            countdown = undefined;
-            stopped   = true;
-            setControlTitle('Play');
-            setFinishDate("");
-          }else{
-            if (stopped) {
-              stopped = false;
-              startTimer();
-            }else{
-              counter = insertedSeconds;
-              setRemainSeconds(insertedSeconds);
-            }
-            setControlTitle('Stop'); 
-          }
-        }}
-      >
-        <input
-          type="number"
-          value={insertedSeconds}
-          onChange={(e) => setInsertedSeconds(parseInt(e.target.value))}
+      <header>
+        <NavigationHeaderContainer
+          buttonHandler={navigationContainerClickHandler}
         />
-        <input type="submit" value={controlTitle}/>
-      </form>
+        <NameContainer />
+        <SettingsIconContainer />
+      </header>
       <div className="content">
+        <PresetNavigation navigationVisible={navigationVisible} insertedSeconds={insertedSeconds} setInsertedSeconds={setInsertedSeconds}/>
         <main>
           <div className="controls-container">
             <div className="clock-face-container-outer">
               <div className="clock-face-container-inner">
-                <p className={controlTitle==="Stop"?"":"blink"}>{remainSeconds}</p>
-                <p>{finishDate}</p>
-                {/* <ClockFaceDisplay
-                  hours={hours}
-                  minutes={minutes}
-                  seconds={seconds}
-                />
+                <ClockFaceDisplay remainSeconds={remainSeconds} finishDate={finishDate}/>
                 <ClockFaceControls
                   timerControlsHandler={timerControlsHandler}
                   timerStopped={timerStopped}
-                /> */}
+                />
               </div>
             </div>
             <div className="counter-container"></div>
@@ -136,53 +131,46 @@ function PresetNavigation(props) {
       {PRESET_ARRAY.map((preset, index) => {
         return (
           <div key={index} className="preset-container">
-            <button
-              className="preset-container-button"
-              onClick={() => {
-                props.setEndTime(preset.value);
-              }}
-            >
-              {preset.name}
-            </button>
+            <button className="preset-container-button" >{preset.name}</button>
             <button className="preset-container-button-delete">
               <i className="fas fa-trash inactive"></i>
             </button>
           </div>
         );
       })}
+      <input
+          type="number"
+          value={props.insertedSeconds}
+          onChange={(e) => props.setInsertedSeconds(parseInt(e.target.value))}
+        />
     </nav>
   );
 }
 
 function ClockFaceDisplay(props) {
-  //if (props.minutes || props.seconds) {
-  return (
-    <div className="clock-face-container-display">
-      <p>
-        <span>{(props.hours < 10 ? "0" : "") + props.hours}</span>:
-        <span>{(props.minutes < 10 ? "0" : "") + props.minutes}</span>:
-        <span>{(props.seconds < 10 ? "0" : "") + props.seconds}</span>
-      </p>
-    </div>
-  );
-  // } else {
-  //   return null;
-  // }
+    return (
+      <div className="clock-face-container-display" style={{flexDirection:"column"}}>
+        {/* <p>
+          <span>{(props.hours < 10 ? "0" : "") + props.hours}</span>:
+          <span>{(props.minutes < 10 ? "0" : "") + props.minutes}</span>:
+          <span>{(props.seconds < 10 ? "0" : "") + props.seconds}</span>
+        </p> */}
+         <h1 style={{fontSize:"20px"}}>{props.finishDate}</h1>
+        <p style={{marginTop:"35px"}}>{props.remainSeconds}</p>
+       
+      </div>
+    );
 }
 
 function ClockFaceControls(props) {
-  let classes = ["clock-face-container-controls-container"];
-  if (!props.timerStopped) {
-    classes.push("stopped");
+  let classes=['clock-face-container-controls-container'];
+  if (!props.timerStopped){
+    classes.push('stopped');
   }
 
   return (
-    <div className={classes.join(" ")} onClick={props.timerControlsHandler}>
-      {props.timerStopped ? (
-        <i className="fas fa-play"></i>
-      ) : (
-        <i className="fas fa-pause"></i>
-      )}
+    <div className={classes.join(' ')} onClick={props.timerControlsHandler}>
+      {props.timerStopped?<i className="fas fa-play"></i>:<i class="fas fa-pause"></i>}
     </div>
   );
 }
