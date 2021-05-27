@@ -72,7 +72,7 @@ function App() {
       }
       setTimerStopped(false);
     }
-    if (insertedSeconds !== 0){
+    if (insertedSeconds !== 0) {
       setInsertedSeconds(0);
     }
   }
@@ -91,6 +91,7 @@ function App() {
           navigationVisible={navigationVisible}
           insertedSeconds={insertedSeconds}
           setInsertedSeconds={setInsertedSeconds}
+          timerControlsHandler={timerControlsHandler}
         />
         <main>
           <div className="controls-container">
@@ -145,6 +146,13 @@ function PresetNavigation(props) {
         type="number"
         value={props.insertedSeconds}
         onChange={(e) => props.setInsertedSeconds(parseInt(e.target.value))}
+        onKeyDown={(e) => {
+          console.log('onKeyDown', e.code);
+          if (e.target.value > 0 && e.code === 'Enter' || e.code === 'NumpadEnter') {
+            console.log('onKeyDown:value', e.target.value);
+            props.timerControlsHandler(e);
+          }
+        }}
       />
       <br />
       {PRESET_ARRAY.map((preset, index) => {
