@@ -1,62 +1,80 @@
 import React, { useState, useEffect } from "react";
 
-const PRESET_ARRAY = [{name:"30 Secs",value:30}, {name:"Work 5",value:300}, {name:"Quick 15",value:900}, {name:"30 min",value:1800}, {name:"One hour", value:3600}];
+const PRESET_ARRAY = [
+  { name: "30 Secs", value: 30 },
+  { name: "Work 5", value: 300 },
+  { name: "Quick 15", value: 900 },
+  { name: "30 min", value: 1800 },
+  { name: "One hour", value: 3600 },
+];
 let countdown;
+let counter;
+let stopped = false;
 
 function App() {
   const [navigationVisible, setNavigationVisible] = useState(false);
   const [timerStopped, setTimerStopped] = useState(true);
+  const [insertedSeconds, setInsertedSeconds] = useState(0);
+  const [remainSeconds, setRemainSeconds] = useState(0);
+  const [finishDate, setFinishDate] = useState("");
 
-  const [hours, setHours] = useState(0);
-  const [minutes, setMinutes] = useState(0);
-  const [seconds, setSeconds] = useState(0);
+  function updateTimer() {
+    setRemainSeconds(--counter);
+    setFinishDate(new Date(Date.now() + counter * 1000).toLocaleString());
+    if (counter <= 0) {
+      setTimerStopped(true);
+    }
+  }
 
-  const [endTime, setEndTime] = useState(0);
+  function stopTimer() {
+    clearInterval(countdown);
+    countdown = undefined;
+  }
+
+  function startTimer() {
+    countdown = setInterval(updateTimer, 1000);
+  }
 
   useEffect(() => {
-    console.log(endTime);
-  }, [endTime]);
+    if (countdown !== undefined && counter <= 0) {
+      stopTimer();
+    }
+
+    if (countdown === undefined && counter > 0) {
+      startTimer();
+    }
+
+    return () => {
+      clearInterval(countdown);
+      countdown = undefined;
+    };
+  }, [remainSeconds]);
 
   function navigationContainerClickHandler() {
     setNavigationVisible(!navigationVisible);
   }
 
-  function timerControlsHandler() {
-    if (!timerStopped) {
+  function timerControlsHandler(event) {
+    event.preventDefault();
+    if (countdown !== undefined) {
       clearInterval(countdown);
+      countdown = undefined;
+      stopped = true;
+      setTimerStopped(true);
+      setFinishDate("");
     } else {
-      countdown = setInterval(() => {
-        // const now = new Date(Date.now());
-        // setSeconds(now.getSeconds());
-        // setMinutes(now.getMinutes());
-        // setHours(now.getHours());
-        updateTimer();
-      }, 1000);
-    };
-
-    setTimerStopped(!timerStopped);
-  }
-
-  function updateTimer() {
-    let secondsLeft = Math.round((endTime - Date.now()) / 1000);
-    if(secondsLeft < 0){ 
-        // if (allowSound){
-        //     snd.play();
-        // }   
-        setTimerStopped(true);
-        return;
+      if (stopped) {
+        stopped = false;
+        startTimer();
+      } else {
+        counter = insertedSeconds;
+        setRemainSeconds(insertedSeconds);
+      }
+      setTimerStopped(false);
     }
-    updateTimeLeft(secondsLeft);  
-  }
-
-  function updateTimeLeft(seconds) {
-    let hours = (seconds / 360 < 1 ? Math.floor(seconds / 360): null) ;
-    let reminderMinutes = hours % 360;
-    let minutes = Math.floor(reminderMinutes / 60);
-    let remindSeconds = reminderMinutes % 60;
-    setHours(hours);
-    setMinutes(minutes);
-    setSeconds(remindSeconds);
+    if (insertedSeconds !== 0) {
+      setInsertedSeconds(0);
+    }
   }
 
   return (
@@ -69,15 +87,19 @@ function App() {
         <SettingsIconContainer />
       </header>
       <div className="content">
-        <PresetNavigation navigationVisible={navigationVisible} setEndTime={setEndTime}/>
+        <PresetNavigation
+          navigationVisible={navigationVisible}
+          insertedSeconds={insertedSeconds}
+          setInsertedSeconds={setInsertedSeconds}
+          timerControlsHandler={timerControlsHandler}
+        />
         <main>
           <div className="controls-container">
             <div className="clock-face-container-outer">
               <div className="clock-face-container-inner">
                 <ClockFaceDisplay
-                  hours={hours}
-                  minutes={minutes}
-                  seconds={seconds}
+                  remainSeconds={remainSeconds}
+                  finishDate={finishDate}
                 />
                 <ClockFaceControls
                   timerControlsHandler={timerControlsHandler}
@@ -120,10 +142,23 @@ function PresetNavigation(props) {
 
   return (
     <nav>
+      <input
+        type="number"
+        value={props.insertedSeconds}
+        onChange={(e) => props.setInsertedSeconds(parseInt(e.target.value))}
+        onKeyDown={(e) => {
+          console.log('onKeyDown', e.code);
+          if (e.target.value > 0 && e.code === 'Enter' || e.code === 'NumpadEnter') {
+            console.log('onKeyDown:value', e.target.value);
+            props.timerControlsHandler(e);
+          }
+        }}
+      />
+      <br />
       {PRESET_ARRAY.map((preset, index) => {
         return (
           <div key={index} className="preset-container">
-            <button className="preset-container-button" onClick={()=>{props.setEndTime(preset.value) }}>{preset.name}</button>
+            <button className="preset-container-button">{preset.name}</button>
             <button className="preset-container-button-delete">
               <i className="fas fa-trash inactive"></i>
             </button>
@@ -135,30 +170,62 @@ function PresetNavigation(props) {
 }
 
 function ClockFaceDisplay(props) {
-  if (props.minutes) {
-    return (
-      <div className="clock-face-container-display">
-        <p>
-          <span>{(props.hours < 10 ? "0" : "") + props.hours}</span>:
-          <span>{(props.minutes < 10 ? "0" : "") + props.minutes}</span>:
-          <span>{(props.seconds < 10 ? "0" : "") + props.seconds}</span>
-        </p>
-      </div>
-    );
-  } else {
-    return null;
-  }
+  let hours = Math.floor(props.remainSeconds / 3600);
+  let hoursReminder = props.remainSeconds % 3600;
+  let minutes = Math.floor(hoursReminder / 60);
+  let seconds = hoursReminder % 60;
+
+  return (
+    <div
+      className="clock-face-container-display"
+      style={{ flexDirection: "column" }}
+    >
+      <h1
+        style={{
+          fontSize: "20px",
+          width: "170px",
+          height: "25px",
+          marginTop: "25px",
+        }}
+      >
+        {props.finishDate}
+      </h1>
+      <p style={{ marginTop: "35px" }}>
+        <span
+          style={{ maxWidth: "130px", width: "130px", display: "inline-block" }}
+        >
+          {(hours < 10 ? "0" : "") + hours}
+        </span>
+        :
+        <span
+          style={{ maxWidth: "130px", width: "130px", display: "inline-block" }}
+        >
+          {(minutes < 10 ? "0" : "") + minutes}
+        </span>
+        :
+        <span
+          style={{ maxWidth: "92px", width: "92px", display: "inline-block" }}
+        >
+          {(seconds < 10 ? "0" : "") + seconds}
+        </span>
+      </p>
+    </div>
+  );
 }
 
 function ClockFaceControls(props) {
-  let classes=['clock-face-container-controls-container'];
-  if (!props.timerStopped){
-    classes.push('stopped');
+  let classes = ["clock-face-container-controls-container"];
+  if (!props.timerStopped) {
+    classes.push("stopped");
   }
 
   return (
-    <div className={classes.join(' ')} onClick={props.timerControlsHandler}>
-      {props.timerStopped?<i className="fas fa-play"></i>:<i class="fas fa-pause"></i>}
+    <div className={classes.join(" ")} onClick={props.timerControlsHandler}>
+      {props.timerStopped ? (
+        <i className="fas fa-play"></i>
+      ) : (
+        <i class="fas fa-pause"></i>
+      )}
     </div>
   );
 }

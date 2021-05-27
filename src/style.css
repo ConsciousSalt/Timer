@@ -128,3 +128,18 @@ main {
     transform: scale(1.4);
     color: hsl(0, 58%, 8%);    
 }
+
+.blink {
+    -webkit-animation: blink 0.9s linear infinite;
+    animation: blink 0.9s linear infinite;
+  }
+  @-webkit-keyframes blink {
+    50% { color: rgb(34, 34, 34); }
+    51% { color: rgba(34, 34, 34, 0); }
+    100% { color: rgba(34, 34, 34, 0); }
+  }
+  @keyframes blink {
+    50% { color: rgb(34, 34, 34); }
+    51% { color: rgba(34, 34, 34, 0); }
+    100% { color: rgba(34, 34, 34, 0); }
+  }
